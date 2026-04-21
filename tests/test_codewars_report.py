@@ -346,6 +346,10 @@ class SummaryFormattingTests(unittest.TestCase):
 
         table = formatting.format_summary_table(summary_rows)
 
+        self.assertIn("KATAS RANKING", table)
+        self.assertIn("((\\//)) <KATAS> ((\\//))", table)
+        self.assertIn("\033[", table)
+        self.assertIn("[G] Alice", table)
         self.assertIn("solved_count", table)
         self.assertIn("Alice", table)
         self.assertIn("alice", table)

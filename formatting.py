@@ -6,6 +6,16 @@ from typing import Iterable
 
 from retrieval import CompletedKata, SheetUser
 
+ANSI_RESET = "\033[0m"
+ANSI_BOLD_BRIGHT_GREEN = "\033[1;92m"
+ANSI_GREEN = "\033[32m"
+ANSI_DIM_GREEN = "\033[2;32m"
+ANSI_BRIGHT_CYAN = "\033[1;96m"
+ANSI_BRIGHT_YELLOW = "\033[1;93m"
+ANSI_BRIGHT_WHITE = "\033[1;97m"
+ANSI_CYAN = "\033[96m"
+ANSI_BRONZE = "\033[38;5;208m"
+
 
 def build_user_counts(
     users: Iterable[SheetUser],
@@ -67,17 +77,96 @@ def write_csv(path: Path, fieldnames: list[str], rows: Iterable[dict[str, str]])
         writer.writerows(rows)
 
 
+def colorize(text: str, color: str) -> str:
+    return f"{color}{text}{ANSI_RESET}"
+
+
 def format_summary_table(summary_rows: Iterable[dict[str, str]]) -> str:
     rows = list(summary_rows)
-    headers = ["solved_count", "name", "username"]
-    widths = {
-        header: max(len(header), *(len(row[header]) for row in rows)) if rows else len(header)
-        for header in headers
-    }
-    lines = [
-        "  ".join(header.ljust(widths[header]) for header in headers),
-        "  ".join("-" * widths[header] for header in headers),
+    headers = ["name", "username", "solved_count"]
+    medal_styles = [
+        ("🥇", ANSI_BRIGHT_YELLOW),
+        ("🥈", ANSI_BRIGHT_WHITE),
+        ("🥉", ANSI_BRONZE),
     ]
-    for row in rows:
-        lines.append("  ".join(row[header].ljust(widths[header]) for header in headers))
+    display_rows: list[dict[str, str | None]] = []
+    for index, row in enumerate(rows):
+        medal_label: str | None = None
+        medal_color: str | None = None
+        display_name = row["name"]
+        if index < len(medal_styles):
+            medal_label, medal_color = medal_styles[index]
+            display_name = f"{medal_label} {row['name']}"
+        display_rows.append(
+            {
+                **row,
+                "display_name": display_name,
+                "medal_label": medal_label,
+                "medal_color": medal_color,
+            }
+        )
+
+    widths = {
+        "name": max(len("name"), *(len(str(row["display_name"])) for row in display_rows))
+        if display_rows
+        else len("name"),
+        "username": max(len("username"), *(len(str(row["username"])) for row in display_rows))
+        if display_rows
+        else len("username"),
+        "solved_count": max(len("solved_count"), *(len(str(row["solved_count"])) for row in display_rows))
+        if display_rows
+        else len("solved_count"),
+    }
+    total_width = 1 + sum(widths[header] + 3 for header in headers)
+    total_width += len(headers)
+
+    def border_line() -> str:
+        segments = ["-" * (widths[header] + 2) for header in headers]
+        return colorize("+" + "+".join(segments) + "+", ANSI_DIM_GREEN)
+
+    def build_row(values: dict[str, str] | None = None, *, header: bool = False) -> str:
+        cells: list[str] = []
+        for column in headers:
+            if header:
+                header_text = column.rjust(widths[column]) if column == "solved_count" else column.ljust(widths[column])
+                content = colorize(header_text, ANSI_BRIGHT_CYAN)
+            else:
+                if column == "name":
+                    value = str(values["display_name"]).ljust(widths[column]) if values else "".ljust(widths[column])
+                    medal_color = values.get("medal_color") if values else None
+                    if isinstance(medal_color, str):
+                        content = colorize(value, medal_color)
+                    else:
+                        content = colorize(value, ANSI_BRIGHT_WHITE)
+                else:
+                    value = (
+                        str(values[column]).rjust(widths[column])
+                        if column == "solved_count"
+                        else str(values[column]).ljust(widths[column])
+                    ) if values else ("".rjust(widths[column]) if column == "solved_count" else "".ljust(widths[column]))
+                    if column == "solved_count":
+                        content = colorize(value, ANSI_BRIGHT_YELLOW)
+                    else:
+                        content = colorize(value, ANSI_CYAN)
+                if column == "solved_count":
+                    content = colorize(value, ANSI_BRIGHT_YELLOW)
+            cells.append(f" {content} ")
+        return colorize("|", ANSI_GREEN) + colorize("|", ANSI_GREEN).join(cells) + colorize("|", ANSI_GREEN)
+
+    title_line = "KATAS RANKING".center(total_width)
+    art_line = ".:: ꧁⎝ 𓆩༺   KATAS   RANKING   ༻𓆪 ⎠꧂::.".center(total_width)
+    sub_line = "[ dojo://root ]  [ shell-fu ]".center(total_width)
+    separator_line = "=" * total_width
+
+    lines = [
+        colorize(separator_line, ANSI_DIM_GREEN),
+        colorize(art_line, ANSI_BRIGHT_CYAN),
+        colorize(separator_line, ANSI_DIM_GREEN),
+        border_line(),
+        build_row(header=True),
+        border_line(),
+    ]
+    for row in display_rows:
+        lines.append(build_row(row))
+    lines.append(border_line())
     return "\n".join(lines)
