@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+
+.codex
+
+completed_katas.csv
+summary.csv
+
+credentials.json
+application_default_credentials.json
+*.token.json
