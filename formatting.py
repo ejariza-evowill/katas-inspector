@@ -26,14 +26,10 @@ def build_user_counts(
         )
         for (flow, name, username), count in counts.items()
     ]
-    summary_rows.sort(
-        key=lambda row: (
-            -row[1],
-            row[0].flow.lower(),
-            row[0].name.lower(),
-            row[0].username.lower(),
-        )
-    )
+    summary_rows.sort(key=lambda row: row[0].username.lower())
+    summary_rows.sort(key=lambda row: row[0].name.lower())
+    summary_rows.sort(key=lambda row: row[0].flow.lower(), reverse=True)
+    summary_rows.sort(key=lambda row: row[1], reverse=True)
     return summary_rows
 
 
@@ -56,7 +52,6 @@ def format_detail_rows(completed_katas: Iterable[CompletedKata]) -> list[dict[st
 def format_summary_rows(summary_counts: Iterable[tuple[SheetUser, int]]) -> list[dict[str, str]]:
     return [
         {
-            "flow": user.flow,
             "name": user.name,
             "username": user.username,
             "solved_count": str(count),
@@ -74,7 +69,7 @@ def write_csv(path: Path, fieldnames: list[str], rows: Iterable[dict[str, str]])
 
 def format_summary_table(summary_rows: Iterable[dict[str, str]]) -> str:
     rows = list(summary_rows)
-    headers = ["solved_count", "flow", "name", "username"]
+    headers = ["solved_count", "name", "username"]
     widths = {
         header: max(len(header), *(len(row[header]) for row in rows)) if rows else len(header)
         for header in headers

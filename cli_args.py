@@ -2,6 +2,16 @@ from __future__ import annotations
 
 import argparse
 
+WEEKDAYS = (
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+)
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -28,6 +38,15 @@ def parse_args() -> argparse.Namespace:
         "--period",
         choices=("week", "month", "year"),
         help="Rolling UTC window ending now: week=7 days, month=30 days, year=365 days.",
+    )
+    parser.add_argument(
+        "--from-last",
+        dest="from_last",
+        choices=WEEKDAYS,
+        help=(
+            "Start from the most recent named weekday at 00:00 UTC through now. "
+            "For example, --from-last saturday includes Saturday through today."
+        ),
     )
     parser.add_argument(
         "--language",
@@ -63,5 +82,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--google-credentials-file",
         help="Path to Google OAuth credentials.json or authorized_user token JSON.",
+    )
+    parser.add_argument(
+        "--google-token-cache-file",
+        help="Optional path to store the Google OAuth refresh token cache.",
     )
     return parser.parse_args()

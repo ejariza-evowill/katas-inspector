@@ -72,6 +72,7 @@ class GoogleAuthTests(unittest.TestCase):
         token = google_auth.resolve_google_access_token(
             explicit_access_token="explicit-token",
             credentials_file=None,
+            token_cache_file=None,
             timeout_seconds=30,
         )
 
@@ -91,10 +92,59 @@ class GoogleAuthTests(unittest.TestCase):
 
             with mock.patch(
                 "google_auth.refresh_authorized_user",
-                return_value="fresh-access-token",
+                return_value=(
+                    "fresh-access-token",
+                    {
+                        "type": "authorized_user",
+                        "client_id": "client-id",
+                        "client_secret": "client-secret",
+                        "refresh_token": "refresh-me",
+                        "token_uri": "https://oauth2.googleapis.com/token",
+                    },
+                ),
             ) as refresh_authorized_user:
                 token = google_auth.get_google_access_token(
                     credentials_path,
+                    token_cache_path=Path(temp_dir) / "unused.token.json",
+                    timeout_seconds=30,
+                )
+
+        refresh_authorized_user.assert_called_once()
+        self.assertEqual(token, "fresh-access-token")
+
+    def test_get_google_access_token_uses_cached_authorized_user_for_desktop_client(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            credentials_path = Path(temp_dir) / "credentials.json"
+            cache_path = Path(temp_dir) / "credentials.token.json"
+            credentials_path.write_text(
+                '{"installed":{"client_id":"client-id","client_secret":"client-secret"}}',
+                encoding="utf-8",
+            )
+            cache_path.write_text(
+                (
+                    '{"type":"authorized_user","client_id":"client-id",'
+                    '"client_secret":"client-secret","refresh_token":"refresh-me",'
+                    '"token_uri":"https://oauth2.googleapis.com/token"}'
+                ),
+                encoding="utf-8",
+            )
+
+            with mock.patch(
+                "google_auth.refresh_authorized_user",
+                return_value=(
+                    "fresh-access-token",
+                    {
+                        "type": "authorized_user",
+                        "client_id": "client-id",
+                        "client_secret": "client-secret",
+                        "refresh_token": "refresh-me",
+                        "token_uri": "https://oauth2.googleapis.com/token",
+                    },
+                ),
+            ) as refresh_authorized_user:
+                token = google_auth.get_google_access_token(
+                    credentials_path,
+                    token_cache_path=cache_path,
                     timeout_seconds=30,
                 )
 
@@ -172,12 +222,50 @@ class ChallengeFilterTests(unittest.TestCase):
                 period="month",
             )
 
+    def test_resolve_date_range_uses_latest_named_weekday(self) -> None:
+        now = retrieval.datetime(2026, 4, 21, 15, 45, tzinfo=retrieval.timezone.utc)
+
+        start_at, end_before = retrieval.resolve_date_range(
+            from_date=None,
+            to_date=None,
+            period=None,
+            from_last="saturday",
+            now=now,
+        )
+
+        self.assertEqual(start_at, retrieval.datetime(2026, 4, 18, 0, 0, tzinfo=retrieval.timezone.utc))
+        self.assertEqual(end_before, now)
+
+    def test_resolve_date_range_from_last_same_weekday_counts_today_only(self) -> None:
+        now = retrieval.datetime(2026, 4, 18, 15, 45, tzinfo=retrieval.timezone.utc)
+
+        start_at, end_before = retrieval.resolve_date_range(
+            from_date=None,
+            to_date=None,
+            period=None,
+            from_last="saturday",
+            now=now,
+        )
+
+        self.assertEqual(start_at, retrieval.datetime(2026, 4, 18, 0, 0, tzinfo=retrieval.timezone.utc))
+        self.assertEqual(end_before, now)
+
+    def test_resolve_date_range_rejects_mixing_from_last_and_explicit_dates(self) -> None:
+        with self.assertRaisesRegex(ValueError, "--from-last cannot be combined"):
+            retrieval.resolve_date_range(
+                from_date=None,
+                to_date="2026-04-20",
+                period=None,
+                from_last="saturday",
+            )
+
 
 class SummaryFormattingTests(unittest.TestCase):
-    def test_format_summary_rows_sorts_by_solved_count_desc(self) -> None:
+    def test_format_summary_rows_sorts_by_solved_count_desc_then_flow_desc(self) -> None:
         users = [
             retrieval.SheetUser(flow="Flow A", name="Alice", username="alice"),
             retrieval.SheetUser(flow="Flow B", name="Bob", username="bob"),
+            retrieval.SheetUser(flow="Flow C", name="Carol", username="carol"),
         ]
         completed_katas = [
             retrieval.CompletedKata(
@@ -210,6 +298,16 @@ class SummaryFormattingTests(unittest.TestCase):
                 completed_at="2026-04-03T00:00:00Z",
                 completed_languages=("python",),
             ),
+            retrieval.CompletedKata(
+                flow="Flow C",
+                name="Carol",
+                username="carol",
+                kata_id="4",
+                kata_name="Four",
+                kata_slug="four",
+                completed_at="2026-04-04T00:00:00Z",
+                completed_languages=("python",),
+            ),
         ]
 
         summary_rows = formatting.format_summary_rows(
@@ -220,13 +318,16 @@ class SummaryFormattingTests(unittest.TestCase):
             summary_rows,
             [
                 {
-                    "flow": "Flow B",
                     "name": "Bob",
                     "username": "bob",
                     "solved_count": "2",
                 },
                 {
-                    "flow": "Flow A",
+                    "name": "Carol",
+                    "username": "carol",
+                    "solved_count": "1",
+                },
+                {
                     "name": "Alice",
                     "username": "alice",
                     "solved_count": "1",
@@ -237,7 +338,6 @@ class SummaryFormattingTests(unittest.TestCase):
     def test_format_summary_table_returns_printable_table(self) -> None:
         summary_rows = [
             {
-                "flow": "Flow A",
                 "name": "Alice",
                 "username": "alice",
                 "solved_count": "3",
@@ -249,6 +349,7 @@ class SummaryFormattingTests(unittest.TestCase):
         self.assertIn("solved_count", table)
         self.assertIn("Alice", table)
         self.assertIn("alice", table)
+        self.assertNotIn("Flow A", table)
 
 
 class AsyncRetrievalTests(unittest.IsolatedAsyncioTestCase):

@@ -26,6 +26,7 @@ def main() -> int:
     google_access_token = resolve_google_access_token(
         explicit_access_token=os.getenv(args.google_access_token_env),
         credentials_file=args.google_credentials_file,
+        token_cache_file=args.google_token_cache_file,
         timeout_seconds=args.timeout_seconds,
     )
     users = load_sheet_users_from_source(
@@ -37,6 +38,7 @@ def main() -> int:
         from_date=args.from_date,
         to_date=args.to_date,
         period=args.period,
+        from_last=args.from_last,
     )
 
     completed_katas = asyncio.run(
@@ -68,7 +70,7 @@ def main() -> int:
     )
     write_csv(
         Path(args.summary_out),
-        ["flow", "name", "username", "solved_count"],
+        ["name", "username", "solved_count"],
         summary_rows,
     )
 

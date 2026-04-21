@@ -34,6 +34,7 @@ def resolve_google_access_token(
     *,
     explicit_access_token: str | None,
     credentials_file: str | None,
+    token_cache_file: str | None,
     timeout_seconds: int,
 ) -> str | None:
     if explicit_access_token:
@@ -42,27 +43,47 @@ def resolve_google_access_token(
         return None
 
     credentials_path = Path(credentials_file)
+    cache_path = Path(token_cache_file) if token_cache_file else default_token_cache_path(credentials_path)
     return get_google_access_token(
         credentials_path,
+        token_cache_path=cache_path,
         timeout_seconds=timeout_seconds,
     )
+
+
+def default_token_cache_path(credentials_path: Path) -> Path:
+    return credentials_path.with_name(f"{credentials_path.stem}.token.json")
 
 
 def get_google_access_token(
     credentials_path: Path,
     *,
+    token_cache_path: Path,
     timeout_seconds: int,
 ) -> str:
     credentials = load_json_file(credentials_path)
 
     if is_authorized_user_credentials(credentials):
-        access_token = refresh_authorized_user(
+        access_token, _ = refresh_authorized_user(
             credentials,
             timeout_seconds=timeout_seconds,
         )
         return access_token
 
     client = parse_google_oauth_client(credentials)
+    cached_credentials = load_json_file(token_cache_path) if token_cache_path.exists() else None
+    if cached_credentials and is_authorized_user_credentials(cached_credentials):
+        if cached_credentials.get("client_id") == client.client_id:
+            try:
+                access_token, refreshed_credentials = refresh_authorized_user(
+                    cached_credentials,
+                    timeout_seconds=timeout_seconds,
+                )
+                write_json_file(token_cache_path, refreshed_credentials)
+                return access_token
+            except RuntimeError:
+                pass
+
     authorization = run_installed_app_flow(client)
     token_response = exchange_authorization_code(
         client,
@@ -71,9 +92,20 @@ def get_google_access_token(
         redirect_uri=authorization["redirect_uri"],
         timeout_seconds=timeout_seconds,
     )
+    refresh_token = token_response.get("refresh_token")
     access_token = token_response.get("access_token")
-    if not isinstance(access_token, str):
-        raise RuntimeError("Google OAuth token response did not include an access_token.")
+    if not isinstance(refresh_token, str) or not isinstance(access_token, str):
+        raise RuntimeError("Google OAuth token response did not include refresh_token and access_token.")
+
+    authorized_user_credentials = {
+        "type": "authorized_user",
+        "client_id": client.client_id,
+        "client_secret": client.client_secret,
+        "refresh_token": refresh_token,
+        "token_uri": client.token_uri,
+        "scopes": list(GOOGLE_AUTH_SCOPES),
+    }
+    write_json_file(token_cache_path, authorized_user_credentials)
     return access_token
 
 
@@ -121,7 +153,7 @@ def refresh_authorized_user(
     credentials: dict[str, object],
     *,
     timeout_seconds: int,
-) -> str:
+) -> tuple[str, dict[str, object]]:
     token_uri = credentials.get("token_uri", DEFAULT_TOKEN_URI)
     if not isinstance(token_uri, str):
         raise ValueError("Authorized user credentials contain an invalid token_uri.")
@@ -139,7 +171,9 @@ def refresh_authorized_user(
     access_token = token_response.get("access_token")
     if not isinstance(access_token, str):
         raise RuntimeError("Google OAuth refresh response did not include an access_token.")
-    return access_token
+    refreshed_credentials = dict(credentials)
+    refreshed_credentials["access_token"] = access_token
+    return access_token, refreshed_credentials
 
 
 def run_installed_app_flow(client: GoogleOAuthClient) -> dict[str, str]:
@@ -277,3 +311,7 @@ def load_json_file(path: Path) -> dict[str, object]:
     if not isinstance(payload, dict):
         raise ValueError(f"{path} does not contain a JSON object.")
     return payload
+
+
+def write_json_file(path: Path, payload: dict[str, object]) -> None:
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")

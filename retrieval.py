@@ -179,15 +179,19 @@ def resolve_date_range(
     from_date: str | None,
     to_date: str | None,
     period: str | None,
+    from_last: str | None = None,
     now: datetime | None = None,
 ) -> tuple[datetime | None, datetime | None]:
-    if period and (from_date or to_date):
-        raise ValueError("--period cannot be combined with --from-date or --to-date.")
+    if period and (from_date or to_date or from_last):
+        raise ValueError("--period cannot be combined with --from-date, --to-date, or --from-last.")
+
+    if from_last and (from_date or to_date):
+        raise ValueError("--from-last cannot be combined with --from-date or --to-date.")
+
+    if now is None:
+        now = datetime.now(timezone.utc)
 
     if period:
-        if now is None:
-            now = datetime.now(timezone.utc)
-
         period_days = {
             "week": 7,
             "month": 30,
@@ -196,6 +200,25 @@ def resolve_date_range(
         if period not in period_days:
             raise ValueError(f"Unsupported period: {period}.")
         return now - timedelta(days=period_days[period]), now
+
+    if from_last:
+        weekdays = {
+            "monday": 0,
+            "tuesday": 1,
+            "wednesday": 2,
+            "thursday": 3,
+            "friday": 4,
+            "saturday": 5,
+            "sunday": 6,
+        }
+        target_weekday = weekdays.get(from_last)
+        if target_weekday is None:
+            raise ValueError(f"Unsupported weekday: {from_last}.")
+
+        days_since_target = (now.weekday() - target_weekday) % 7
+        start_date = (now - timedelta(days=days_since_target)).date()
+        start_at = datetime.combine(start_date, dt_time.min, tzinfo=timezone.utc)
+        return start_at, now
 
     start_at = parse_date_arg(from_date)
     end_before = parse_date_arg(to_date, inclusive_end=True)
