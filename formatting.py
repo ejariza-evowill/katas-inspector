@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import unicodedata
 from pathlib import Path
 from typing import Iterable
 
@@ -81,6 +82,30 @@ def colorize(text: str, color: str) -> str:
     return f"{color}{text}{ANSI_RESET}"
 
 
+def visible_width(text: str) -> int:
+    width = 0
+    for char in text:
+        if unicodedata.combining(char):
+            continue
+        if char in {"\u200d", "\ufe0f"}:
+            continue
+        if unicodedata.category(char)[0] == "C":
+            continue
+        width += 2 if unicodedata.east_asian_width(char) in {"W", "F"} else 1
+    return width
+
+
+def pad_visible(text: str, width: int, *, align: str = "left") -> str:
+    padding = max(0, width - visible_width(text))
+    if align == "right":
+        return (" " * padding) + text
+    if align == "center":
+        left_padding = padding // 2
+        right_padding = padding - left_padding
+        return (" " * left_padding) + text + (" " * right_padding)
+    return text + (" " * padding)
+
+
 def format_summary_table(summary_rows: Iterable[dict[str, str]]) -> str:
     rows = list(summary_rows)
     headers = ["name", "username", "solved_count"]
@@ -107,15 +132,18 @@ def format_summary_table(summary_rows: Iterable[dict[str, str]]) -> str:
         )
 
     widths = {
-        "name": max(len("name"), *(len(str(row["display_name"])) for row in display_rows))
+        "name": max(visible_width("name"), *(visible_width(str(row["display_name"])) for row in display_rows))
         if display_rows
-        else len("name"),
-        "username": max(len("username"), *(len(str(row["username"])) for row in display_rows))
+        else visible_width("name"),
+        "username": max(visible_width("username"), *(visible_width(str(row["username"])) for row in display_rows))
         if display_rows
-        else len("username"),
-        "solved_count": max(len("solved_count"), *(len(str(row["solved_count"])) for row in display_rows))
+        else visible_width("username"),
+        "solved_count": max(
+            visible_width("solved_count"),
+            *(visible_width(str(row["solved_count"])) for row in display_rows),
+        )
         if display_rows
-        else len("solved_count"),
+        else visible_width("solved_count"),
     }
     total_width = 1 + sum(widths[header] + 3 for header in headers)
     total_width += len(headers)
@@ -128,39 +156,39 @@ def format_summary_table(summary_rows: Iterable[dict[str, str]]) -> str:
         cells: list[str] = []
         for column in headers:
             if header:
-                header_text = column.rjust(widths[column]) if column == "solved_count" else column.ljust(widths[column])
+                header_text = pad_visible(
+                    column,
+                    widths[column],
+                    align="right" if column == "solved_count" else "left",
+                )
                 content = colorize(header_text, ANSI_BRIGHT_CYAN)
             else:
                 if column == "name":
-                    value = str(values["display_name"]).ljust(widths[column]) if values else "".ljust(widths[column])
+                    value = pad_visible(str(values["display_name"]), widths[column]) if values else (" " * widths[column])
                     medal_color = values.get("medal_color") if values else None
                     if isinstance(medal_color, str):
                         content = colorize(value, medal_color)
                     else:
-                        content = colorize(value, ANSI_BRIGHT_WHITE)
+                        content = colorize(value, ANSI_CYAN)
                 else:
                     value = (
-                        str(values[column]).rjust(widths[column])
+                        pad_visible(str(values[column]), widths[column], align="right")
                         if column == "solved_count"
-                        else str(values[column]).ljust(widths[column])
-                    ) if values else ("".rjust(widths[column]) if column == "solved_count" else "".ljust(widths[column]))
-                    if column == "solved_count":
-                        content = colorize(value, ANSI_BRIGHT_YELLOW)
-                    else:
-                        content = colorize(value, ANSI_CYAN)
-                if column == "solved_count":
-                    content = colorize(value, ANSI_BRIGHT_YELLOW)
+                        else pad_visible(str(values[column]), widths[column])
+                    ) if values else (" " * widths[column])
+                    content = colorize(value, ANSI_BRIGHT_YELLOW if column == "solved_count" else ANSI_CYAN)
             cells.append(f" {content} ")
         return colorize("|", ANSI_GREEN) + colorize("|", ANSI_GREEN).join(cells) + colorize("|", ANSI_GREEN)
 
-    title_line = "KATAS RANKING".center(total_width)
-    art_line = ".:: ꧁⎝ 𓆩༺   KATAS   RANKING   ༻𓆪 ⎠꧂::.".center(total_width)
-    sub_line = "[ dojo://root ]  [ shell-fu ]".center(total_width)
+
+    art_line = pad_visible(".:: ꧁⎝ 𓆩༺   KATAS   RANKING   ༻𓆪 ⎠꧂::.", total_width, align="center")
     separator_line = "=" * total_width
 
     lines = [
         colorize(separator_line, ANSI_DIM_GREEN),
+        "",
         colorize(art_line, ANSI_BRIGHT_CYAN),
+        "",
         colorize(separator_line, ANSI_DIM_GREEN),
         border_line(),
         build_row(header=True),

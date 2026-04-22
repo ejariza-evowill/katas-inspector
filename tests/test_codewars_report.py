@@ -347,13 +347,27 @@ class SummaryFormattingTests(unittest.TestCase):
         table = formatting.format_summary_table(summary_rows)
 
         self.assertIn("KATAS RANKING", table)
-        self.assertIn("((\\//)) <KATAS> ((\\//))", table)
         self.assertIn("\033[", table)
-        self.assertIn("[G] Alice", table)
+        self.assertIn("🥇 Alice", table)
         self.assertIn("solved_count", table)
         self.assertIn("Alice", table)
         self.assertIn("alice", table)
         self.assertNotIn("Flow A", table)
+
+    def test_format_summary_table_uses_cyan_for_non_top_three_names(self) -> None:
+        summary_rows = [
+            {"name": "Alice", "username": "alice", "solved_count": "4"},
+            {"name": "Bob", "username": "bob", "solved_count": "3"},
+            {"name": "Carol", "username": "carol", "solved_count": "2"},
+            {"name": "Dave", "username": "dave", "solved_count": "1"},
+        ]
+
+        table = formatting.format_summary_table(summary_rows)
+
+        self.assertIn(f"{formatting.ANSI_CYAN}Dave", table)
+
+    def test_visible_width_treats_medal_emoji_as_double_width(self) -> None:
+        self.assertEqual(formatting.visible_width("🥇 Alice"), len(" Alice") + 2)
 
 
 class AsyncRetrievalTests(unittest.IsolatedAsyncioTestCase):
