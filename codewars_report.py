@@ -39,6 +39,7 @@ def main() -> int:
         to_date=args.to_date,
         period=args.period,
         from_last=args.from_last,
+        ukrainian_last_week=args.ukrainian_last_week,
     )
 
     completed_katas = asyncio.run(

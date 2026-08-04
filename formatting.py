@@ -39,7 +39,7 @@ def build_user_counts(
     ]
     summary_rows.sort(key=lambda row: row[0].username.lower())
     summary_rows.sort(key=lambda row: row[0].name.lower())
-    summary_rows.sort(key=lambda row: row[0].flow.lower(), reverse=True)
+    summary_rows.sort(key=lambda row: row[0].flow.lower(), reverse=False)
     summary_rows.sort(key=lambda row: row[1], reverse=True)
     return summary_rows
 

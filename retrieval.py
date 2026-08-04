@@ -10,6 +10,7 @@ from typing import Iterable
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
+from zoneinfo import ZoneInfo
 
 
 @dataclass(frozen=True)
@@ -69,6 +70,9 @@ def challenge_matches(
 
 
 API_URL = "https://www.codewars.com/api/v1/users/{username}/code-challenges/completed?page={page}"
+UKRAINE_TIMEZONE = ZoneInfo("Europe/Kyiv")
+UKRAINIAN_WEEK_BOUNDARY_WEEKDAY = 4
+UKRAINIAN_WEEK_BOUNDARY_TIME = dt_time(17, 0)
 
 
 def fetch_completed_challenges(
@@ -174,22 +178,51 @@ def parse_date_arg(value: str | None, *, inclusive_end: bool = False) -> datetim
     return boundary
 
 
+def resolve_ukrainian_last_week(now: datetime) -> tuple[datetime, datetime]:
+    now_ukraine = now.astimezone(UKRAINE_TIMEZONE)
+    days_since_friday = (now_ukraine.weekday() - UKRAINIAN_WEEK_BOUNDARY_WEEKDAY) % 7
+    boundary_date = (now_ukraine - timedelta(days=days_since_friday)).date()
+    end_local = datetime.combine(
+        boundary_date,
+        UKRAINIAN_WEEK_BOUNDARY_TIME,
+        tzinfo=UKRAINE_TIMEZONE,
+    )
+    if end_local > now_ukraine:
+        end_local -= timedelta(days=7)
+
+    start_local = end_local - timedelta(days=7)
+    return start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc)
+
+
 def resolve_date_range(
     *,
     from_date: str | None,
     to_date: str | None,
     period: str | None,
     from_last: str | None = None,
+    ukrainian_last_week: bool = False,
     now: datetime | None = None,
 ) -> tuple[datetime | None, datetime | None]:
-    if period and (from_date or to_date or from_last):
-        raise ValueError("--period cannot be combined with --from-date, --to-date, or --from-last.")
+    if period and (from_date or to_date or from_last or ukrainian_last_week):
+        raise ValueError(
+            "--period cannot be combined with --from-date, --to-date, --from-last, "
+            "or --ukrainian-last-week."
+        )
 
-    if from_last and (from_date or to_date):
-        raise ValueError("--from-last cannot be combined with --from-date or --to-date.")
+    if from_last and (from_date or to_date or ukrainian_last_week):
+        raise ValueError(
+            "--from-last cannot be combined with --from-date, --to-date, "
+            "or --ukrainian-last-week."
+        )
+
+    if ukrainian_last_week and (from_date or to_date):
+        raise ValueError("--ukrainian-last-week cannot be combined with --from-date or --to-date.")
 
     if now is None:
         now = datetime.now(timezone.utc)
+
+    if ukrainian_last_week:
+        return resolve_ukrainian_last_week(now)
 
     if period:
         period_days = {

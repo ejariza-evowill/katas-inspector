@@ -250,6 +250,43 @@ class ChallengeFilterTests(unittest.TestCase):
         self.assertEqual(start_at, retrieval.datetime(2026, 4, 18, 0, 0, tzinfo=retrieval.timezone.utc))
         self.assertEqual(end_before, now)
 
+    def test_resolve_date_range_uses_ukrainian_last_week_after_friday_boundary(self) -> None:
+        now = retrieval.datetime(2026, 8, 7, 17, 0, tzinfo=retrieval.timezone.utc)
+
+        start_at, end_before = retrieval.resolve_date_range(
+            from_date=None,
+            to_date=None,
+            period=None,
+            ukrainian_last_week=True,
+            now=now,
+        )
+
+        self.assertEqual(start_at, retrieval.datetime(2026, 7, 31, 14, 0, tzinfo=retrieval.timezone.utc))
+        self.assertEqual(end_before, retrieval.datetime(2026, 8, 7, 14, 0, tzinfo=retrieval.timezone.utc))
+
+    def test_resolve_date_range_uses_previous_ukrainian_week_before_friday_boundary(self) -> None:
+        now = retrieval.datetime(2026, 8, 7, 10, 0, tzinfo=retrieval.timezone.utc)
+
+        start_at, end_before = retrieval.resolve_date_range(
+            from_date=None,
+            to_date=None,
+            period=None,
+            ukrainian_last_week=True,
+            now=now,
+        )
+
+        self.assertEqual(start_at, retrieval.datetime(2026, 7, 24, 14, 0, tzinfo=retrieval.timezone.utc))
+        self.assertEqual(end_before, retrieval.datetime(2026, 7, 31, 14, 0, tzinfo=retrieval.timezone.utc))
+
+    def test_resolve_date_range_rejects_mixing_ukrainian_last_week_and_explicit_dates(self) -> None:
+        with self.assertRaisesRegex(ValueError, "--ukrainian-last-week cannot be combined"):
+            retrieval.resolve_date_range(
+                from_date="2026-04-01",
+                to_date=None,
+                period=None,
+                ukrainian_last_week=True,
+            )
+
     def test_resolve_date_range_rejects_mixing_from_last_and_explicit_dates(self) -> None:
         with self.assertRaisesRegex(ValueError, "--from-last cannot be combined"):
             retrieval.resolve_date_range(

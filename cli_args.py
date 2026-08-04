@@ -49,6 +49,14 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--ukrainian-last-week",
+        action="store_true",
+        help=(
+            "Use the last completed weekly window from Friday 17:00 to Friday 17:00 "
+            "in Europe/Kyiv time."
+        ),
+    )
+    parser.add_argument(
         "--language",
         help="Optional language filter, for example python.",
     )

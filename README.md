@@ -58,7 +58,15 @@ Use the most recent named weekday, including that day:
 
 `--from-last saturday` means “from the latest Saturday at `00:00 UTC` through now.” If today is Saturday, it counts only today.
 
-`--period` cannot be combined with `--from-date`, `--to-date`, or `--from-last`. `--from-last` cannot be combined with `--from-date` or `--to-date`.
+Use the last completed Ukrainian weekly window:
+
+```bash
+.venv/bin/python codewars_report.py users.csv --ukrainian-last-week
+```
+
+`--ukrainian-last-week` means “from the previous Friday at `17:00 Europe/Kyiv` through the last Friday at `17:00 Europe/Kyiv`.” The end boundary is exclusive. For example, if it is Friday at 20:00 in Ukraine, it reports the window from the previous Friday at 17:00 through today at 17:00.
+
+`--period` cannot be combined with `--from-date`, `--to-date`, `--from-last`, or `--ukrainian-last-week`. `--from-last` cannot be combined with `--from-date`, `--to-date`, or `--ukrainian-last-week`. `--ukrainian-last-week` cannot be combined with `--from-date` or `--to-date`.
 
 ## Other Filters
 
