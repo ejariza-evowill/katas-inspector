@@ -49,6 +49,16 @@ function medalForIndex(index) {
   return ["🥇", "🥈", "🥉"][index] ?? "";
 }
 
+function isOutOfCompetition(row) {
+  return String(row?.flow || "")
+    .toLowerCase()
+    .includes("out of competition");
+}
+
+function displayName(row) {
+  return isOutOfCompetition(row) ? `(out of competition) ${row.name}` : row.name;
+}
+
 function formatKyu(rankName) {
   const match = String(rankName || "").match(/^(\d+)\s+kyu$/i);
   return match ? match[1] : rankName || "n/a";
@@ -195,6 +205,8 @@ function RankingView({
   onCloseDetail,
   onSelectUser,
 }) {
+  let competitorRank = 0;
+
   return (
     <section className="ranking-layout">
       <div className="console-panel ranking-panel">
@@ -214,22 +226,28 @@ function RankingView({
               </tr>
             </thead>
             <tbody>
-              {summaryRows.map((row, index) => (
-                <tr
-                  className={row.username === selectedUsername ? "selected" : ""}
-                  key={row.username}
-                  onClick={() => onSelectUser(row.username)}
-                >
-                  <td>{index + 1}</td>
-                  <td>
-                    <span className="medal">{medalForIndex(index)}</span>
-                    {row.name}
-                  </td>
-                  <td>{row.username}</td>
-                  <td>{row.solved_count}</td>
-                  <td>{row.total_score}</td>
-                </tr>
-              ))}
+              {summaryRows.map((row) => {
+                const outOfCompetition = isOutOfCompetition(row);
+                const rank = outOfCompetition ? "" : String((competitorRank += 1));
+                const medal = outOfCompetition ? "" : medalForIndex(competitorRank - 1);
+
+                return (
+                  <tr
+                    className={row.username === selectedUsername ? "selected" : ""}
+                    key={row.username}
+                    onClick={() => onSelectUser(row.username)}
+                  >
+                    <td>{rank}</td>
+                    <td>
+                      <span className="medal">{medal}</span>
+                      {displayName(row)}
+                    </td>
+                    <td>{row.username}</td>
+                    <td>{row.solved_count}</td>
+                    <td>{row.total_score}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

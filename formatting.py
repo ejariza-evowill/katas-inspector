@@ -85,6 +85,7 @@ def format_summary_rows(
         total_score = summary_count[2] if len(summary_count) == 3 else 0
         rows.append(
             {
+                "flow": user.flow,
                 "name": user.name,
                 "username": user.username,
                 "solved_count": str(count),
@@ -97,6 +98,7 @@ def format_summary_rows(
 def format_summary_count_rows(summary_counts: Iterable[tuple[SheetUser, int]]) -> list[dict[str, str]]:
     return [
         {
+            "flow": user.flow,
             "name": user.name,
             "username": user.username,
             "solved_count": str(count),

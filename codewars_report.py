@@ -110,7 +110,7 @@ def main() -> int:
     )
     write_csv(
         Path(args.summary_out),
-        ["name", "username", "solved_count", "total_score"],
+        ["flow", "name", "username", "solved_count", "total_score"],
         summary_rows,
     )
 

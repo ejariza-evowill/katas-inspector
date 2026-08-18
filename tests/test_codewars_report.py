@@ -447,24 +447,28 @@ class SummaryFormattingTests(unittest.TestCase):
             summary_rows,
             [
                 {
+                    "flow": "Flow A",
                     "name": "Alice",
                     "username": "alice",
                     "solved_count": "1",
                     "total_score": "21",
                 },
                 {
+                    "flow": "Flow B",
                     "name": "Bob",
                     "username": "bob",
                     "solved_count": "2",
                     "total_score": "4",
                 },
                 {
+                    "flow": "Flow D",
                     "name": "Dave",
                     "username": "dave",
                     "solved_count": "1",
                     "total_score": "4",
                 },
                 {
+                    "flow": "Flow C",
                     "name": "Carol",
                     "username": "carol",
                     "solved_count": "1",
@@ -512,10 +516,12 @@ class SummaryFormattingTests(unittest.TestCase):
 
         self.assertEqual(summary_rows[0]["solved_count"], "2")
         self.assertEqual(summary_rows[0]["total_score"], "29")
+        self.assertEqual(summary_rows[0]["flow"], "Flow A")
 
     def test_format_summary_table_returns_printable_table(self) -> None:
         summary_rows = [
             {
+                "flow": "Flow A",
                 "name": "Alice",
                 "username": "alice",
                 "solved_count": "3",
