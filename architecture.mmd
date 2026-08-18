@@ -48,6 +48,14 @@ flowchart TD
         KataCacheCsv["kata_cache.csv<br/>seen kata rank metadata"]
     end
 
+    subgraph StaticViewer["kata_viewer React Static App"]
+        CopyCsv["scripts/copy-csv.mjs<br/>copy root CSV reports"]
+        ViewerAssets["public/data/*.csv<br/>static CSV assets"]
+        RankingTab["Ranking tab<br/>users, scores, kata detail"]
+        RulesTab["Scoring Rules tab<br/>rank-to-score table"]
+        ViteBuild["Vite dev/build<br/>static browser app"]
+    end
+
     Args --> Auth
     Args --> Input
     Args --> Dates
@@ -90,6 +98,16 @@ flowchart TD
     Formatting --> TerminalTable
     Retrieval --> Logs
     Command --> Logs
+
+    DetailsCsv --> CopyCsv
+    SummaryCsv --> CopyCsv
+    ScoringRulesCsv --> CopyCsv
+    CopyCsv --> ViewerAssets
+    ViewerAssets --> RankingTab
+    ViewerAssets --> RulesTab
+    RankingTab --> CodewarsLinks["Codewars kata links<br/>/kata/{kata_slug}"]
+    RankingTab --> ViteBuild
+    RulesTab --> ViteBuild
 
     Tests["tests/test_codewars_report.py<br/>unit and async tests"] -.-> Auth
     Tests -.-> Input

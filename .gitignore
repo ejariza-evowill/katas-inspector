@@ -10,3 +10,7 @@ summary.csv
 credentials.json
 application_default_credentials.json
 *.token.json
+
+kata_viewer/node_modules/
+kata_viewer/dist/
+kata_viewer/public/data/

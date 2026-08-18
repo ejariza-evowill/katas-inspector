@@ -119,3 +119,22 @@ Without an explicit cache path, it uses `<credentials-stem>.token.json`.
 
 The detailed CSV includes each kata's rank and `awarded_score`. The summary `total_score` is the
 sum of those awarded scores for the completed kata rows returned by Codewars.
+
+## Static Viewer
+
+The React viewer in `kata_viewer/` displays the generated CSV reports as a static web app.
+Generate `summary.csv`, `completed_katas.csv`, and `kata_scoring_rules.csv` first, then run:
+
+```bash
+npm install --prefix kata_viewer
+npm run dev --prefix kata_viewer
+```
+
+The `dev` and `build` scripts copy the root CSV files into the viewer's static assets before
+starting or building the app.
+
+Build the static app with:
+
+```bash
+npm run build --prefix kata_viewer
+```

@@ -10,6 +10,10 @@ Use the existing virtual environment for local work:
 - `.venv/bin/python -m pip list` shows installed packages; the environment is currently nearly empty.
 - `.venv/bin/python -m pip install -r requirements.txt` is the expected install pattern once a dependency file is added.
 - `.venv/bin/python -m pytest` should be the default test entry point when tests are introduced.
+- `npm install --prefix kata_viewer` installs dependencies for the static React viewer.
+- `npm run dev --prefix kata_viewer` copies the root CSV reports and starts the viewer locally.
+- `npm run build --prefix kata_viewer` copies the root CSV reports and builds the static viewer.
+- `npm run preview --prefix kata_viewer` serves the built viewer locally.
 
 If you add a build script, task runner, or alternate test command, document it in this file in the same change.
 
