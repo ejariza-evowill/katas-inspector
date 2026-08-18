@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { fetchCsvObjects } from "./csv.js";
+import { fetchCsvObjects, fetchJson } from "./csv.js";
 
 const TABS = {
   ranking: "ranking",
@@ -41,6 +41,17 @@ function getReportRange(katas) {
   return `${formatDateTime(Math.min(...timestamps))} - ${formatDateTime(Math.max(...timestamps))}`;
 }
 
+function getMetadataRange(metadata) {
+  const dateRange = metadata?.date_range;
+  if (!dateRange || (!dateRange.start_at && !dateRange.end_before)) {
+    return "";
+  }
+
+  const start = dateRange.start_at ? formatDateTime(dateRange.start_at) : "beginning";
+  const end = dateRange.end_before ? formatDateTime(dateRange.end_before) : "now";
+  return `${start} - ${end}`;
+}
+
 function codewarsKataUrl(kata) {
   return `https://www.codewars.com/kata/${encodeURIComponent(kata.kata_slug || kata.kata_id)}`;
 }
@@ -69,6 +80,7 @@ function App() {
   const [summaryRows, setSummaryRows] = useState([]);
   const [kataRows, setKataRows] = useState([]);
   const [scoringRules, setScoringRules] = useState([]);
+  const [reportMetadata, setReportMetadata] = useState(null);
   const [selectedUsername, setSelectedUsername] = useState("");
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [status, setStatus] = useState({ loading: true, error: "" });
@@ -76,10 +88,11 @@ function App() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [summary, katas, rules] = await Promise.all([
+        const [summary, katas, rules, metadata] = await Promise.all([
           fetchCsvObjects("summary.csv"),
           fetchCsvObjects("completed_katas.csv"),
           fetchCsvObjects("kata_scoring_rules.csv"),
+          fetchJson("report_metadata.json", { optional: true }),
         ]);
 
         const sortedSummary = [...summary].sort((left, right) => {
@@ -97,6 +110,7 @@ function App() {
         setSummaryRows(sortedSummary);
         setKataRows(katas);
         setScoringRules(rules);
+        setReportMetadata(metadata);
         setStatus({ loading: false, error: "" });
       } catch (error) {
         setStatus({ loading: false, error: error.message });
@@ -124,7 +138,10 @@ function App() {
     [selectedKatas],
   );
 
-  const reportRange = useMemo(() => getReportRange(kataRows), [kataRows]);
+  const reportRange = useMemo(
+    () => getMetadataRange(reportMetadata) || getReportRange(kataRows),
+    [kataRows, reportMetadata],
+  );
 
   if (status.loading) {
     return <main className="app-shell loading">Loading CSV reports...</main>;

@@ -6,6 +6,7 @@ __pycache__/
 
 completed_katas.csv
 summary.csv
+report_metadata.json
 
 credentials.json
 application_default_credentials.json

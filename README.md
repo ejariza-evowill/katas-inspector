@@ -116,6 +116,7 @@ Without an explicit cache path, it uses `<credentials-stem>.token.json`.
 - `completed_katas.csv`: one row per completed kata
 - `summary.csv`: one row per user with `flow`, `name`, `username`, `solved_count`, and
   `total_score`, sorted by total score descending, then solved count descending
+- `report_metadata.json`: resolved report date range, written only when a date filter is used
 
 The detailed CSV includes each kata's rank and `awarded_score`. The summary `total_score` is the
 sum of those awarded scores for the completed kata rows returned by Codewars.
@@ -135,6 +136,8 @@ starting or building the app.
 
 Users whose `flow` contains `out of competition` are shown in the ranking table without a rank
 number or medal. Medal placement skips those users and continues with the next eligible competitor.
+The viewer uses `report_metadata.json` as the source of truth for the displayed date range when it
+exists, and falls back to inferring the range from `completed_katas.csv` timestamps.
 
 Build the static app with:
 

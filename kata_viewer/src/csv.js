@@ -60,3 +60,16 @@ export async function fetchCsvObjects(fileName) {
   }
   return parseCsvObjects(await response.text());
 }
+
+export async function fetchJson(fileName, { optional = false } = {}) {
+  const buildId = import.meta.env.VITE_BUILD_ID || "dev";
+  const url = `${import.meta.env.BASE_URL}data/${fileName}?v=${encodeURIComponent(buildId)}`;
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) {
+    if (optional && response.status === 404) {
+      return null;
+    }
+    throw new Error(`Could not load ${fileName}: HTTP ${response.status}`);
+  }
+  return response.json();
+}

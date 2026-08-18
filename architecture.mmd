@@ -39,6 +39,7 @@ flowchart TD
     subgraph Outputs["Generated Outputs"]
         DetailsCsv["completed_katas.csv<br/>one row per completed kata"]
         SummaryCsv["summary.csv<br/>per-user solved counts and total score"]
+        MetadataJson["report_metadata.json<br/>resolved date range"]
         TerminalTable["stdout summary table"]
         Logs["stderr progress and warnings"]
     end
@@ -102,12 +103,14 @@ flowchart TD
 
     Formatting --> DetailsCsv
     Formatting --> SummaryCsv
+    Command --> MetadataJson
     Formatting --> TerminalTable
     Retrieval --> Logs
     Command --> Logs
 
     DetailsCsv --> CopyCsv
     SummaryCsv --> CopyCsv
+    MetadataJson --> CopyCsv
     ScoringRulesCsv --> CopyCsv
     CopyCsv --> ViewerAssets
     ViewerAssets --> RankingTab

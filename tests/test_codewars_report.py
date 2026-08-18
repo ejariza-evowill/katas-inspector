@@ -373,6 +373,37 @@ class KataScoringTests(unittest.TestCase):
         self.assertEqual(cache["example-kata"].kata_rank_name, "5 kyu")
 
 
+class ReportMetadataTests(unittest.TestCase):
+    def test_write_report_metadata_stores_resolved_date_range(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            metadata_path = Path(temp_dir) / "report_metadata.json"
+
+            wrote_metadata = codewars_report.write_report_metadata(
+                metadata_path,
+                start_at=retrieval.datetime(2026, 8, 7, 14, 0, tzinfo=retrieval.timezone.utc),
+                end_before=retrieval.datetime(2026, 8, 14, 14, 0, tzinfo=retrieval.timezone.utc),
+            )
+
+            payload = metadata_path.read_text(encoding="utf-8")
+
+        self.assertTrue(wrote_metadata)
+        self.assertIn('"start_at": "2026-08-07T14:00:00Z"', payload)
+        self.assertIn('"end_before": "2026-08-14T14:00:00Z"', payload)
+
+    def test_write_report_metadata_skips_unbounded_reports(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            metadata_path = Path(temp_dir) / "report_metadata.json"
+
+            wrote_metadata = codewars_report.write_report_metadata(
+                metadata_path,
+                start_at=None,
+                end_before=None,
+            )
+
+            self.assertFalse(wrote_metadata)
+            self.assertFalse(metadata_path.exists())
+
+
 class SummaryFormattingTests(unittest.TestCase):
     def test_format_summary_rows_sorts_by_total_score_desc_then_solved_count_desc(self) -> None:
         users = [

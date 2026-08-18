@@ -71,6 +71,11 @@ def parse_args() -> argparse.Namespace:
         help="Output CSV for per-user solved counts.",
     )
     parser.add_argument(
+        "--metadata-out",
+        default="report_metadata.json",
+        help="Output JSON for report metadata such as the resolved date range.",
+    )
+    parser.add_argument(
         "--scoring-rules-file",
         default="kata_scoring_rules.csv",
         help="CSV file mapping Codewars kata rank IDs to awarded score values.",

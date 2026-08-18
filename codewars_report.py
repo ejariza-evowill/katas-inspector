@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from cli_args import parse_args
@@ -37,6 +39,31 @@ def count_unique_kata_cache_records(kata_cache: dict[str, KataMetadata]) -> int:
             for metadata in kata_cache.values()
         }
     )
+
+
+def format_metadata_datetime(value: datetime | None) -> str | None:
+    if value is None:
+        return None
+    return value.isoformat().replace("+00:00", "Z")
+
+
+def write_report_metadata(
+    path: Path,
+    *,
+    start_at: datetime | None,
+    end_before: datetime | None,
+) -> bool:
+    if start_at is None and end_before is None:
+        return False
+
+    payload = {
+        "date_range": {
+            "start_at": format_metadata_datetime(start_at),
+            "end_before": format_metadata_datetime(end_before),
+        }
+    }
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return True
 
 
 def main() -> int:
@@ -113,10 +140,17 @@ def main() -> int:
         ["flow", "name", "username", "solved_count", "total_score"],
         summary_rows,
     )
+    wrote_metadata = write_report_metadata(
+        Path(args.metadata_out),
+        start_at=start_at,
+        end_before=end_before,
+    )
 
     print(format_summary_table(summary_rows))
     print(f"\nWrote {len(detail_rows)} completion rows to {args.details_out}.", file=sys.stderr)
     print(f"Wrote {len(summary_rows)} summary rows to {args.summary_out}.", file=sys.stderr)
+    if wrote_metadata:
+        print(f"Wrote report metadata to {args.metadata_out}.", file=sys.stderr)
     print(
         f"Wrote {count_unique_kata_cache_records(kata_cache)} kata cache records to {kata_cache_path}.",
         file=sys.stderr,
