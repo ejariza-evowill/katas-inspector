@@ -2,6 +2,7 @@
   --evowill-ink: #111231;
   --evowill-red: #ff0012;
   --evowill-red-soft: #ff2c2c;
+  --evowill-red-dark: #660007;
   --evowill-orange: #ffa400;
   --black: #000000;
   --paper: #fff7eb;
@@ -30,6 +31,26 @@ body {
   font-smooth: never;
   -webkit-font-smoothing: none;
   image-rendering: pixelated;
+  position: relative;
+}
+
+body::before {
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(255, 247, 235, 0.055) 0,
+    rgba(255, 247, 235, 0.055) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  bottom: 0;
+  content: "";
+  left: 0;
+  opacity: 0.42;
+  pointer-events: none;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 0;
 }
 
 button,
@@ -51,6 +72,8 @@ a:hover {
   width: min(1440px, 100%);
   margin: 0 auto;
   padding: 28px;
+  position: relative;
+  z-index: 1;
 }
 
 .app-shell.loading {
@@ -154,7 +177,7 @@ h2 {
 .tabs button {
   border: 1px solid rgba(255, 164, 0, 0.32);
   border-color: rgba(255, 164, 0, 0.32);
-  background: var(--panel);
+  background: var(--evowill-red-dark);
   color: var(--paper);
   cursor: pointer;
   padding: 10px 14px;
@@ -163,7 +186,7 @@ h2 {
 .tabs button.active,
 .tabs button:hover {
   border-color: var(--evowill-orange);
-  background: rgba(255, 0, 18, 0.2);
+  background: var(--evowill-ink);
   color: #ffffff;
 }
 
@@ -343,7 +366,7 @@ h2 {
 }
 
 .console-table th {
-  background: rgba(255, 0, 18, 0.18);
+  background: var(--evowill-red-dark);
   color: var(--evowill-orange);
   text-align: left;
   border-bottom: 1px solid var(--evowill-orange);
@@ -368,7 +391,7 @@ h2 {
 
 .ranking-table tbody tr:hover,
 .ranking-table tbody tr.selected {
-  background: rgba(255, 0, 18, 0.28);
+  background: var(--evowill-ink);
   color: #ffffff;
 }
 
