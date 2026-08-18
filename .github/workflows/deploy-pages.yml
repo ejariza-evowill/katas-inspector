@@ -91,6 +91,12 @@ jobs:
           VITE_BUILD_ID: ${{ github.run_id }}-${{ github.run_attempt }}
         run: npm run build --prefix kata_viewer
 
+      - name: Verify Pages artifact contents
+        if: steps.schedule_guard.outputs.should_deploy == 'true'
+        run: |
+          test -s kata_viewer/dist/favicon.png
+          grep -q '/katas-inspector/favicon.png?v=' kata_viewer/dist/index.html
+
       - name: Upload Pages artifact
         if: steps.schedule_guard.outputs.should_deploy == 'true'
         uses: actions/upload-pages-artifact@v3
