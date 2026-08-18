@@ -52,7 +52,9 @@ export function parseCsvObjects(text) {
 }
 
 export async function fetchCsvObjects(fileName) {
-  const response = await fetch(`${import.meta.env.BASE_URL}data/${fileName}`);
+  const buildId = import.meta.env.VITE_BUILD_ID || "dev";
+  const url = `${import.meta.env.BASE_URL}data/${fileName}?v=${encodeURIComponent(buildId)}`;
+  const response = await fetch(url, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Could not load ${fileName}: HTTP ${response.status}`);
   }

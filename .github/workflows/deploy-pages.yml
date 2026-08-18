@@ -87,6 +87,8 @@ jobs:
 
       - name: Build viewer
         if: steps.schedule_guard.outputs.should_deploy == 'true'
+        env:
+          VITE_BUILD_ID: ${{ github.run_id }}-${{ github.run_attempt }}
         run: npm run build --prefix kata_viewer
 
       - name: Upload Pages artifact

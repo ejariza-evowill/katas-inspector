@@ -156,3 +156,5 @@ requires browser interaction. Do not commit either credentials file.
 
 In GitHub, configure Pages to use **GitHub Actions** as the deployment source. The workflow runs
 manually through `workflow_dispatch` and is also scheduled for Friday 17:30 Europe/Kyiv time.
+The deployed viewer appends a build id to CSV asset requests so browsers do not keep stale report
+data across deployments.
