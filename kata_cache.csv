@@ -106,6 +106,7 @@ kata_id,kata_slug,kata_rank_id,kata_rank_name
 595aa94353e43a8746000120,lost-number-in-number-sequence,-7,7 kyu
 59706036f6e5d1e22d000016,love-vs-friendship,-7,7 kyu
 57a60bad72292d3e93000a5a,make-acronym,-7,7 kyu
+6347f9715467f0001b434936,matrix-weight,-7,7 kyu
 5663f5305102699bad000056,maximum-length-difference,-7,7 kyu
 5a4138acf28b82aa43000117,maximum-product,-7,7 kyu
 58daa7617332e59593000006,most-digits,-7,7 kyu
@@ -144,8 +145,10 @@ kata_id,kata_slug,kata_rank_id,kata_rank_name
 54c27a33fb7da0db0100040e,youre-a-square,-7,7 kyu
 550498447451fbbd7600041c,are-they-the-same,-6,6 kyu
 526571aae218b8ee490006f4,bit-counting,-6,6 kyu
+5208f99aee097e6552000148,break-camelcase,-6,6 kyu
 5592e3bd57b64d00f3000047,build-a-pile-of-cubes,-6,6 kyu
 56a5d994ac971f1ac500003e,consecutive-strings,-6,6 kyu
+554ca54ffa7d91b236000023,delete-occurrences-of-an-element-if-it-occurs-more-than-n-times,-6,6 kyu
 545cedaa9943f7fe7b000048,detect-pangram,-6,6 kyu
 5287e858c6b5a9678200083c,does-my-number-look-big-in-this,-6,6 kyu
 5679aa472b8f57fb8c000047,equal-sides-of-an-array,-6,6 kyu
@@ -171,3 +174,4 @@ kata_id,kata_slug,kata_rank_id,kata_rank_name
 5254ca2719453dcc0b00027d,so-many-permutations,-4,4 kyu
 5296bc77afba8baa690002d7,sudoku-solver,-3,3 kyu
 5679d5a3f2272011d700000d,6-by-6-skyscrapers,-2,2 kyu
+5917a2205ffc30ec3a0000a8,7x7-skyscrapers,-1,1 kyu

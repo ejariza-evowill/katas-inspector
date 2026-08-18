@@ -147,6 +147,10 @@ h2 {
   margin: 0 0 18px;
 }
 
+.top-tabs {
+  margin-bottom: 22px;
+}
+
 .tabs button {
   border: 1px solid rgba(255, 164, 0, 0.32);
   border-color: rgba(255, 164, 0, 0.32);

@@ -133,18 +133,7 @@ function App() {
 
   return (
     <main className="app-shell">
-      <header className="app-header">
-        <div className="ascii-rule" aria-hidden="true">
-          <span></span>
-        </div>
-        <h1>.:: ꧁⎝ 𓆩༺&nbsp;&nbsp; KATAS RANKING&nbsp;&nbsp; ༻𓆪 ⎠꧂::.</h1>
-        <div className="ascii-rule" aria-hidden="true">
-          <span></span>
-        </div>
-        <p className="date-range">Date range: {reportRange}</p>
-      </header>
-
-      <nav className="tabs" aria-label="Views">
+      <nav className="tabs top-tabs" aria-label="Views">
         <button
           className={activeTab === TABS.ranking ? "active" : ""}
           type="button"
@@ -160,6 +149,17 @@ function App() {
           Scoring Rules
         </button>
       </nav>
+
+      <header className="app-header">
+        <div className="ascii-rule" aria-hidden="true">
+          <span></span>
+        </div>
+        <h1>.:: ꧁⎝ 𓆩༺&nbsp;&nbsp; KATAS RANKING&nbsp;&nbsp; ༻𓆪 ⎠꧂::.</h1>
+        <div className="ascii-rule" aria-hidden="true">
+          <span></span>
+        </div>
+        <p className="date-range">Date range: {reportRange}</p>
+      </header>
 
       {activeTab === TABS.ranking ? (
         <RankingView
