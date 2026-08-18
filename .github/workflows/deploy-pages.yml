@@ -1,0 +1,108 @@
+name: Deploy Kata Viewer
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub schedules use UTC. Europe/Kyiv is UTC+2 in winter and UTC+3 in summer.
+    # The guard step below makes only the schedule matching Friday 17:30 Kyiv time proceed.
+    - cron: "30 14 * * 5"
+    - cron: "30 15 * * 5"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      should_deploy: ${{ steps.schedule_guard.outputs.should_deploy }}
+    steps:
+      - name: Check schedule timezone
+        id: schedule_guard
+        env:
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          should_deploy="$(python -c 'import os; from datetime import datetime, timezone; from zoneinfo import ZoneInfo; minute, hour, *_ = os.environ["EVENT_SCHEDULE"].split(); now_utc = datetime.now(timezone.utc); scheduled_utc = now_utc.replace(hour=int(hour), minute=int(minute), second=0, microsecond=0); scheduled_kyiv = scheduled_utc.astimezone(ZoneInfo("Europe/Kyiv")); print(str(scheduled_kyiv.weekday() == 4 and scheduled_kyiv.hour == 17 and scheduled_kyiv.minute == 30).lower())')"
+          echo "should_deploy=$should_deploy" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        if: steps.schedule_guard.outputs.should_deploy == 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        if: steps.schedule_guard.outputs.should_deploy == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node
+        if: steps.schedule_guard.outputs.should_deploy == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: kata_viewer/package-lock.json
+
+      - name: Configure Pages
+        if: steps.schedule_guard.outputs.should_deploy == 'true'
+        uses: actions/configure-pages@v5
+
+      - name: Write Google credentials
+        if: steps.schedule_guard.outputs.should_deploy == 'true'
+        env:
+          GOOGLE_AUTHORIZED_USER_JSON: ${{ secrets.GOOGLE_AUTHORIZED_USER_JSON }}
+        run: |
+          test -n "$GOOGLE_AUTHORIZED_USER_JSON"
+          umask 077
+          printf '%s' "$GOOGLE_AUTHORIZED_USER_JSON" > credentials.json
+
+      - name: Generate weekly CSV reports
+        if: steps.schedule_guard.outputs.should_deploy == 'true'
+        run: |
+          python codewars_report.py \
+            "https://docs.google.com/spreadsheets/d/13i5CdmbvuhCk09gGM2kB3dg5xDncyHsVzetSf4QHBuk" \
+            --google-credentials-file credentials.json \
+            --ukrainian-last-week \
+            --language python
+
+      - name: Remove Google credentials
+        if: always()
+        run: |
+          rm -f credentials.json
+
+      - name: Install viewer dependencies
+        if: steps.schedule_guard.outputs.should_deploy == 'true'
+        run: npm ci --prefix kata_viewer
+
+      - name: Build viewer
+        if: steps.schedule_guard.outputs.should_deploy == 'true'
+        run: npm run build --prefix kata_viewer
+
+      - name: Upload Pages artifact
+        if: steps.schedule_guard.outputs.should_deploy == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: kata_viewer/dist
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.should_deploy == 'true'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -138,3 +138,18 @@ Build the static app with:
 ```bash
 npm run build --prefix kata_viewer
 ```
+
+## GitHub Pages Deployment
+
+The workflow at `.github/workflows/deploy-pages.yml` regenerates the weekly Python report, builds
+the static viewer, and deploys `kata_viewer/dist/` to GitHub Pages.
+
+Before running it, add this repository secret:
+
+- `GOOGLE_AUTHORIZED_USER_JSON`: the full authorized-user Google OAuth JSON with a refresh token.
+
+Use the cached token JSON produced by local OAuth login, not the Desktop OAuth client JSON that
+requires browser interaction. Do not commit either credentials file.
+
+In GitHub, configure Pages to use **GitHub Actions** as the deployment source. The workflow runs
+manually through `workflow_dispatch` and is also scheduled for Friday 17:30 Europe/Kyiv time.

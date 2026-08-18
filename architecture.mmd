@@ -56,6 +56,13 @@ flowchart TD
         ViteBuild["Vite dev/build<br/>static browser app"]
     end
 
+    subgraph GitHubPages["GitHub Pages CI/CD"]
+        Workflow[".github/workflows/deploy-pages.yml<br/>manual or Friday Kyiv schedule"]
+        GitHubSecret["GOOGLE_AUTHORIZED_USER_JSON<br/>GitHub Actions secret"]
+        PagesArtifact["kata_viewer/dist<br/>Pages artifact"]
+        PagesSite["GitHub Pages<br/>/katas-inspector/"]
+    end
+
     Args --> Auth
     Args --> Input
     Args --> Dates
@@ -108,6 +115,11 @@ flowchart TD
     RankingTab --> CodewarsLinks["Codewars kata links<br/>/kata/{kata_slug}"]
     RankingTab --> ViteBuild
     RulesTab --> ViteBuild
+    Workflow --> GitHubSecret
+    Workflow --> Command
+    Workflow --> ViteBuild
+    ViteBuild --> PagesArtifact
+    PagesArtifact --> PagesSite
 
     Tests["tests/test_codewars_report.py<br/>unit and async tests"] -.-> Auth
     Tests -.-> Input
