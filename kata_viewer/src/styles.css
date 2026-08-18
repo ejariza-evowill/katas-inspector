@@ -168,15 +168,13 @@ h2 {
 }
 
 .ranking-layout {
-  display: grid;
-  grid-template-columns: minmax(360px, 1fr) minmax(0, 0fr);
-  gap: 18px;
+  display: block;
   align-items: start;
-  transition: grid-template-columns 220ms ease;
 }
 
-.ranking-layout.detail-open {
-  grid-template-columns: minmax(360px, 0.9fr) minmax(520px, 1.35fr);
+.ranking-panel {
+  min-height: 520px;
+  overflow: hidden;
 }
 
 .console-panel {
@@ -218,24 +216,26 @@ h2 {
 }
 
 .detail-panel {
-  max-width: 0;
+  background: var(--panel-strong);
+  border-left: 1px solid var(--line);
+  bottom: 16px;
+  box-shadow: -18px 0 0 rgba(0, 0, 0, 0.68);
   overflow: hidden;
-  padding-left: 0;
-  padding-right: 0;
-  transform: translateX(-18px);
   opacity: 0;
+  padding: 16px;
   pointer-events: none;
+  position: absolute;
+  right: 16px;
+  top: 56px;
+  transform: translateX(calc(100% + 24px));
   transition:
-    max-width 220ms ease,
     opacity 160ms ease,
-    padding 220ms ease,
     transform 220ms ease;
+  width: min(680px, 62%);
+  z-index: 2;
 }
 
 .detail-panel.open {
-  max-width: 100%;
-  padding-left: 16px;
-  padding-right: 16px;
   transform: translateX(0);
   opacity: 1;
   pointer-events: auto;
@@ -440,13 +440,8 @@ h2 {
     padding: 18px;
   }
 
-  .app-header,
-  .ranking-layout {
+  .app-header {
     display: block;
-  }
-
-  .ranking-layout {
-    transition: none;
   }
 
   .console-panel + .console-panel {
@@ -455,7 +450,10 @@ h2 {
 
   .detail-panel,
   .detail-panel.open {
-    max-width: none;
+    bottom: 12px;
+    right: 12px;
+    top: 56px;
+    width: calc(100% - 24px);
   }
 }
 

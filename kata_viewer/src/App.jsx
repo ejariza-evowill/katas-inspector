@@ -196,8 +196,8 @@ function RankingView({
   onSelectUser,
 }) {
   return (
-    <section className={`ranking-layout ${isDetailOpen ? "detail-open" : ""}`}>
-      <div className="console-panel">
+    <section className="ranking-layout">
+      <div className="console-panel ranking-panel">
         <div className="panel-title-row">
           <p className="panel-label">RANKING</p>
           <span>{summaryRows.length} users</span>
@@ -233,57 +233,57 @@ function RankingView({
             </tbody>
           </table>
         </div>
-      </div>
 
-      <div className={`console-panel detail-panel ${isDetailOpen ? "open" : ""}`} aria-hidden={!isDetailOpen}>
-        <div className="panel-title-row">
-          <div>
-            <p className="panel-label">USER DETAIL</p>
-            <h2>{selectedUser?.name ?? "No user selected"}</h2>
-          </div>
-          <div className="detail-actions">
-            <div className="score-pill">
-              <span>total</span>
-              <strong>{selectedScore}</strong>
+        <div className={`detail-panel ${isDetailOpen ? "open" : ""}`} aria-hidden={!isDetailOpen}>
+          <div className="panel-title-row">
+            <div>
+              <p className="panel-label">USER DETAIL</p>
+              <h2>{selectedUser?.name ?? "No user selected"}</h2>
             </div>
-            <button className="close-button" type="button" onClick={onCloseDetail} aria-label="Close user detail">
-              x
-            </button>
+            <div className="detail-actions">
+              <div className="score-pill">
+                <span>total</span>
+                <strong>{selectedScore}</strong>
+              </div>
+              <button className="close-button" type="button" onClick={onCloseDetail} aria-label="Close user detail">
+                x
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div className="table-wrap">
-          <table className="console-table kata-table">
-            <thead>
-              <tr>
-                <th>kata</th>
-                <th>kyu</th>
-                <th>score</th>
-                <th>completed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {selectedKatas.map((kata) => (
-                <tr key={`${kata.username}-${kata.kata_id}-${kata.completed_at}`}>
-                  <td>
-                    <a href={codewarsKataUrl(kata)} rel="noreferrer" target="_blank">
-                      {kata.kata_name}
-                    </a>
-                  </td>
-                  <td>{formatKyu(kata.kata_rank_name)}</td>
-                  <td>{kata.awarded_score || "0"}</td>
-                  <td>{formatDateTime(kata.completed_at)}</td>
+          <div className="table-wrap">
+            <table className="console-table kata-table">
+              <thead>
+                <tr>
+                  <th>kata</th>
+                  <th>kyu</th>
+                  <th>score</th>
+                  <th>completed</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan="2">total score</td>
-                <td>{selectedScore}</td>
-                <td>{selectedKatas.length} katas</td>
-              </tr>
-            </tfoot>
-          </table>
+              </thead>
+              <tbody>
+                {selectedKatas.map((kata) => (
+                  <tr key={`${kata.username}-${kata.kata_id}-${kata.completed_at}`}>
+                    <td>
+                      <a href={codewarsKataUrl(kata)} rel="noreferrer" target="_blank">
+                        {kata.kata_name}
+                      </a>
+                    </td>
+                    <td>{formatKyu(kata.kata_rank_name)}</td>
+                    <td>{kata.awarded_score || "0"}</td>
+                    <td>{formatDateTime(kata.completed_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan="2">total score</td>
+                  <td>{selectedScore}</td>
+                  <td>{selectedKatas.length} katas</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
       </div>
     </section>
