@@ -297,12 +297,89 @@ class ChallengeFilterTests(unittest.TestCase):
             )
 
 
+class KataScoringTests(unittest.TestCase):
+    def test_load_scoring_rules_reads_awarded_scores(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            scoring_path = Path(temp_dir) / "kata_scoring_rules.csv"
+            scoring_path.write_text(
+                "rank_id,rank_name,awarded_score\n"
+                "-8,8 kyu,2\n"
+                "-6,6 kyu,8\n",
+                encoding="utf-8",
+            )
+
+            rules = retrieval.load_scoring_rules(scoring_path)
+
+        self.assertEqual(rules[-8].awarded_score, 2)
+        self.assertEqual(rules[-6].rank_name, "6 kyu")
+
+    def test_apply_kata_scores_uses_cached_rank_metadata(self) -> None:
+        completed_katas = [
+            retrieval.CompletedKata(
+                flow="Flow A",
+                name="Alice",
+                username="alice",
+                kata_id="kata-1",
+                kata_name="Example Kata",
+                kata_slug="example-kata",
+                completed_at="2026-04-01T00:00:00Z",
+                completed_languages=("python",),
+            )
+        ]
+        metadata = {
+            "kata-1": retrieval.KataMetadata(
+                kata_id="kata-1",
+                kata_slug="example-kata",
+                kata_rank_id=-6,
+                kata_rank_name="6 kyu",
+            )
+        }
+        rules = {
+            -6: retrieval.ScoringRule(
+                rank_id=-6,
+                rank_name="6 kyu",
+                awarded_score=8,
+            )
+        }
+
+        scored_katas = retrieval.apply_kata_scores(
+            completed_katas,
+            metadata_by_kata_id=metadata,
+            scoring_rules=rules,
+        )
+
+        self.assertEqual(scored_katas[0].kata_rank_id, -6)
+        self.assertEqual(scored_katas[0].kata_rank_name, "6 kyu")
+        self.assertEqual(scored_katas[0].awarded_score, 8)
+
+    def test_kata_cache_round_trip_indexes_by_id_and_slug(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            cache_path = Path(temp_dir) / "kata_cache.csv"
+            retrieval.write_kata_cache(
+                cache_path,
+                {
+                    "kata-1": retrieval.KataMetadata(
+                        kata_id="kata-1",
+                        kata_slug="example-kata",
+                        kata_rank_id=-5,
+                        kata_rank_name="5 kyu",
+                    )
+                },
+            )
+
+            cache = retrieval.load_kata_cache(cache_path)
+
+        self.assertEqual(cache["kata-1"].kata_rank_id, -5)
+        self.assertEqual(cache["example-kata"].kata_rank_name, "5 kyu")
+
+
 class SummaryFormattingTests(unittest.TestCase):
-    def test_format_summary_rows_sorts_by_solved_count_desc_then_flow_desc(self) -> None:
+    def test_format_summary_rows_sorts_by_total_score_desc_then_solved_count_desc(self) -> None:
         users = [
             retrieval.SheetUser(flow="Flow A", name="Alice", username="alice"),
             retrieval.SheetUser(flow="Flow B", name="Bob", username="bob"),
             retrieval.SheetUser(flow="Flow C", name="Carol", username="carol"),
+            retrieval.SheetUser(flow="Flow D", name="Dave", username="dave"),
         ]
         completed_katas = [
             retrieval.CompletedKata(
@@ -314,6 +391,7 @@ class SummaryFormattingTests(unittest.TestCase):
                 kata_slug="one",
                 completed_at="2026-04-01T00:00:00Z",
                 completed_languages=("python",),
+                awarded_score=2,
             ),
             retrieval.CompletedKata(
                 flow="Flow B",
@@ -324,6 +402,7 @@ class SummaryFormattingTests(unittest.TestCase):
                 kata_slug="two",
                 completed_at="2026-04-02T00:00:00Z",
                 completed_languages=("python",),
+                awarded_score=2,
             ),
             retrieval.CompletedKata(
                 flow="Flow A",
@@ -334,6 +413,7 @@ class SummaryFormattingTests(unittest.TestCase):
                 kata_slug="three",
                 completed_at="2026-04-03T00:00:00Z",
                 completed_languages=("python",),
+                awarded_score=21,
             ),
             retrieval.CompletedKata(
                 flow="Flow C",
@@ -344,33 +424,94 @@ class SummaryFormattingTests(unittest.TestCase):
                 kata_slug="four",
                 completed_at="2026-04-04T00:00:00Z",
                 completed_languages=("python",),
+                awarded_score=4,
+            ),
+            retrieval.CompletedKata(
+                flow="Flow D",
+                name="Dave",
+                username="dave",
+                kata_id="5",
+                kata_name="Five",
+                kata_slug="five",
+                completed_at="2026-04-05T00:00:00Z",
+                completed_languages=("python",),
+                awarded_score=4,
             ),
         ]
 
         summary_rows = formatting.format_summary_rows(
-            formatting.build_user_counts(users, completed_katas)
+            formatting.build_user_totals(users, completed_katas)
         )
 
         self.assertEqual(
             summary_rows,
             [
                 {
+                    "name": "Alice",
+                    "username": "alice",
+                    "solved_count": "1",
+                    "total_score": "21",
+                },
+                {
                     "name": "Bob",
                     "username": "bob",
                     "solved_count": "2",
+                    "total_score": "4",
+                },
+                {
+                    "name": "Dave",
+                    "username": "dave",
+                    "solved_count": "1",
+                    "total_score": "4",
                 },
                 {
                     "name": "Carol",
                     "username": "carol",
                     "solved_count": "1",
-                },
-                {
-                    "name": "Alice",
-                    "username": "alice",
-                    "solved_count": "1",
+                    "total_score": "4",
                 },
             ],
         )
+
+    def test_format_summary_rows_includes_total_score(self) -> None:
+        users = [
+            retrieval.SheetUser(flow="Flow A", name="Alice", username="alice"),
+        ]
+        completed_katas = [
+            retrieval.CompletedKata(
+                flow="Flow A",
+                name="Alice",
+                username="alice",
+                kata_id="1",
+                kata_name="One",
+                kata_slug="one",
+                completed_at="2026-04-01T00:00:00Z",
+                completed_languages=("python",),
+                kata_rank_id=-6,
+                kata_rank_name="6 kyu",
+                awarded_score=8,
+            ),
+            retrieval.CompletedKata(
+                flow="Flow A",
+                name="Alice",
+                username="alice",
+                kata_id="2",
+                kata_name="Two",
+                kata_slug="two",
+                completed_at="2026-04-02T00:00:00Z",
+                completed_languages=("python",),
+                kata_rank_id=-5,
+                kata_rank_name="5 kyu",
+                awarded_score=21,
+            ),
+        ]
+
+        summary_rows = formatting.format_summary_rows(
+            formatting.build_user_totals(users, completed_katas)
+        )
+
+        self.assertEqual(summary_rows[0]["solved_count"], "2")
+        self.assertEqual(summary_rows[0]["total_score"], "29")
 
     def test_format_summary_table_returns_printable_table(self) -> None:
         summary_rows = [
@@ -378,6 +519,7 @@ class SummaryFormattingTests(unittest.TestCase):
                 "name": "Alice",
                 "username": "alice",
                 "solved_count": "3",
+                "total_score": "8",
             }
         ]
 
@@ -387,6 +529,7 @@ class SummaryFormattingTests(unittest.TestCase):
         self.assertIn("\033[", table)
         self.assertIn("🥇 Alice", table)
         self.assertIn("solved_count", table)
+        self.assertIn("total_score", table)
         self.assertIn("Alice", table)
         self.assertIn("alice", table)
         self.assertNotIn("Flow A", table)

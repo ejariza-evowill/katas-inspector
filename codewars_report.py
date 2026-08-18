@@ -10,7 +10,7 @@ from pathlib import Path
 
 from cli_args import parse_args
 from formatting import (
-    build_user_counts,
+    build_user_totals,
     format_detail_rows,
     format_summary_rows,
     format_summary_table,
@@ -18,7 +18,25 @@ from formatting import (
 )
 from google_auth import resolve_google_access_token
 from input_source import load_sheet_users_from_source
-from retrieval import resolve_date_range, retrieve_completed_katas
+from retrieval import (
+    KataMetadata,
+    apply_kata_scores,
+    load_kata_cache,
+    load_scoring_rules,
+    resolve_date_range,
+    resolve_kata_metadata,
+    retrieve_completed_katas,
+    write_kata_cache,
+)
+
+
+def count_unique_kata_cache_records(kata_cache: dict[str, KataMetadata]) -> int:
+    return len(
+        {
+            (metadata.kata_id, metadata.kata_slug)
+            for metadata in kata_cache.values()
+        }
+    )
 
 
 def main() -> int:
@@ -42,6 +60,10 @@ def main() -> int:
         ukrainian_last_week=args.ukrainian_last_week,
     )
 
+    scoring_rules = load_scoring_rules(Path(args.scoring_rules_file))
+    kata_cache_path = Path(args.kata_cache_file)
+    kata_cache = load_kata_cache(kata_cache_path)
+
     completed_katas = asyncio.run(
         retrieve_completed_katas(
             users,
@@ -52,8 +74,22 @@ def main() -> int:
             pause_seconds=args.pause_seconds,
         )
     )
+    kata_metadata = asyncio.run(
+        resolve_kata_metadata(
+            completed_katas,
+            cache=kata_cache,
+            timeout_seconds=args.timeout_seconds,
+        )
+    )
+    completed_katas = apply_kata_scores(
+        completed_katas,
+        metadata_by_kata_id=kata_metadata,
+        scoring_rules=scoring_rules,
+    )
+    write_kata_cache(kata_cache_path, kata_cache)
+
     detail_rows = format_detail_rows(completed_katas)
-    summary_rows = format_summary_rows(build_user_counts(users, completed_katas))
+    summary_rows = format_summary_rows(build_user_totals(users, completed_katas))
 
     write_csv(
         Path(args.details_out),
@@ -66,18 +102,25 @@ def main() -> int:
             "kata_slug",
             "completed_at",
             "completed_languages",
+            "kata_rank_id",
+            "kata_rank_name",
+            "awarded_score",
         ],
         detail_rows,
     )
     write_csv(
         Path(args.summary_out),
-        ["name", "username", "solved_count"],
+        ["name", "username", "solved_count", "total_score"],
         summary_rows,
     )
 
     print(format_summary_table(summary_rows))
     print(f"\nWrote {len(detail_rows)} completion rows to {args.details_out}.", file=sys.stderr)
     print(f"Wrote {len(summary_rows)} summary rows to {args.summary_out}.", file=sys.stderr)
+    print(
+        f"Wrote {count_unique_kata_cache_records(kata_cache)} kata cache records to {kata_cache_path}.",
+        file=sys.stderr,
+    )
     return 0
 
 

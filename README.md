@@ -84,6 +84,18 @@ Customize outputs:
   --summary-out my_summary.csv
 ```
 
+Customize scoring inputs:
+
+```bash
+.venv/bin/python codewars_report.py users.csv \
+  --scoring-rules-file kata_scoring_rules.csv \
+  --kata-cache-file kata_cache.csv
+```
+
+`kata_scoring_rules.csv` contains the official Codewars awarded-score table by kata rank.
+`kata_cache.csv` stores kata rank metadata fetched from Codewars so repeated runs do not need
+to re-query challenge details that have already been seen.
+
 ## Google Authentication
 
 You can authenticate with either:
@@ -102,4 +114,8 @@ Without an explicit cache path, it uses `<credentials-stem>.token.json`.
 ## Outputs
 
 - `completed_katas.csv`: one row per completed kata
-- `summary.csv`: one row per user with `name`, `username`, and `solved_count`, sorted by solved count descending
+- `summary.csv`: one row per user with `name`, `username`, `solved_count`, and `total_score`,
+  sorted by total score descending, then solved count descending
+
+The detailed CSV includes each kata's rank and `awarded_score`. The summary `total_score` is the
+sum of those awarded scores for the completed kata rows returned by Codewars.

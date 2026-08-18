@@ -22,25 +22,37 @@ def build_user_counts(
     users: Iterable[SheetUser],
     completed_katas: Iterable[CompletedKata],
 ) -> list[tuple[SheetUser, int]]:
+    return [(user, count) for user, count, _score in build_user_totals(users, completed_katas)]
+
+
+def build_user_totals(
+    users: Iterable[SheetUser],
+    completed_katas: Iterable[CompletedKata],
+) -> list[tuple[SheetUser, int, int]]:
     counts: dict[tuple[str, str, str], int] = {}
+    scores: dict[tuple[str, str, str], int] = {}
     for user in users:
         counts[(user.flow, user.name, user.username)] = 0
+        scores[(user.flow, user.name, user.username)] = 0
 
     for kata in completed_katas:
         key = (kata.flow, kata.name, kata.username)
         counts[key] = counts.get(key, 0) + 1
+        scores[key] = scores.get(key, 0) + kata.awarded_score
 
     summary_rows = [
         (
             SheetUser(flow=flow, name=name, username=username),
             count,
+            scores.get((flow, name, username), 0),
         )
         for (flow, name, username), count in counts.items()
     ]
     summary_rows.sort(key=lambda row: row[0].username.lower())
     summary_rows.sort(key=lambda row: row[0].name.lower())
-    summary_rows.sort(key=lambda row: row[0].flow.lower(), reverse=False)
+    summary_rows.sort(key=lambda row: row[0].flow.lower(), reverse=True)
     summary_rows.sort(key=lambda row: row[1], reverse=True)
+    summary_rows.sort(key=lambda row: row[2], reverse=True)
     return summary_rows
 
 
@@ -55,12 +67,34 @@ def format_detail_rows(completed_katas: Iterable[CompletedKata]) -> list[dict[st
             "kata_slug": kata.kata_slug,
             "completed_at": kata.completed_at,
             "completed_languages": ",".join(kata.completed_languages),
+            "kata_rank_id": "" if kata.kata_rank_id is None else str(kata.kata_rank_id),
+            "kata_rank_name": kata.kata_rank_name,
+            "awarded_score": str(kata.awarded_score),
         }
         for kata in completed_katas
     ]
 
 
-def format_summary_rows(summary_counts: Iterable[tuple[SheetUser, int]]) -> list[dict[str, str]]:
+def format_summary_rows(
+    summary_counts: Iterable[tuple[SheetUser, int] | tuple[SheetUser, int, int]],
+) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for summary_count in summary_counts:
+        user = summary_count[0]
+        count = summary_count[1]
+        total_score = summary_count[2] if len(summary_count) == 3 else 0
+        rows.append(
+            {
+                "name": user.name,
+                "username": user.username,
+                "solved_count": str(count),
+                "total_score": str(total_score),
+            }
+        )
+    return rows
+
+
+def format_summary_count_rows(summary_counts: Iterable[tuple[SheetUser, int]]) -> list[dict[str, str]]:
     return [
         {
             "name": user.name,
@@ -109,6 +143,8 @@ def pad_visible(text: str, width: int, *, align: str = "left") -> str:
 def format_summary_table(summary_rows: Iterable[dict[str, str]]) -> str:
     rows = list(summary_rows)
     headers = ["name", "username", "solved_count"]
+    if any("total_score" in row for row in rows):
+        headers.append("total_score")
     medal_styles = [
         ("🥇", ANSI_BRIGHT_YELLOW),
         ("🥈", ANSI_BRIGHT_WHITE),
@@ -145,6 +181,15 @@ def format_summary_table(summary_rows: Iterable[dict[str, str]]) -> str:
         if display_rows
         else visible_width("solved_count"),
     }
+    if "total_score" in headers:
+        widths["total_score"] = (
+            max(
+                visible_width("total_score"),
+                *(visible_width(str(row.get("total_score", "0"))) for row in display_rows),
+            )
+            if display_rows
+            else visible_width("total_score")
+        )
     total_width = 1 + sum(widths[header] + 3 for header in headers)
     total_width += len(headers)
 
@@ -159,7 +204,7 @@ def format_summary_table(summary_rows: Iterable[dict[str, str]]) -> str:
                 header_text = pad_visible(
                     column,
                     widths[column],
-                    align="right" if column == "solved_count" else "left",
+                    align="right" if column in {"solved_count", "total_score"} else "left",
                 )
                 content = colorize(header_text, ANSI_BRIGHT_CYAN)
             else:
@@ -172,16 +217,19 @@ def format_summary_table(summary_rows: Iterable[dict[str, str]]) -> str:
                         content = colorize(value, ANSI_CYAN)
                 else:
                     value = (
-                        pad_visible(str(values[column]), widths[column], align="right")
-                        if column == "solved_count"
+                        pad_visible(str(values.get(column, "0")), widths[column], align="right")
+                        if column in {"solved_count", "total_score"}
                         else pad_visible(str(values[column]), widths[column])
                     ) if values else (" " * widths[column])
-                    content = colorize(value, ANSI_BRIGHT_YELLOW if column == "solved_count" else ANSI_CYAN)
+                    content = colorize(
+                        value,
+                        ANSI_BRIGHT_YELLOW if column in {"solved_count", "total_score"} else ANSI_CYAN,
+                    )
             cells.append(f" {content} ")
         return colorize("|", ANSI_GREEN) + colorize("|", ANSI_GREEN).join(cells) + colorize("|", ANSI_GREEN)
 
 
-    art_line = pad_visible(".:: ꧁⎝ 𓆩༺   KATAS   RANKING   ༻𓆪 ⎠꧂::.", total_width, align="center")
+    art_line = pad_visible(".:: ꧁⎝ 𓆩༺   KATAS RANKING   ༻𓆪 ⎠꧂::.", total_width, align="center")
     separator_line = "=" * total_width
 
     lines = [

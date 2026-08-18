@@ -1,0 +1,101 @@
+flowchart TD
+    User["CLI user"] --> Command["codewars_report.py<br/>main entry point"]
+
+    Command --> Args["cli_args.py<br/>parse CLI options"]
+    Command --> Auth["google_auth.py<br/>resolve Google access token"]
+    Command --> Input["input_source.py<br/>load sheet users"]
+    Command --> Dates["retrieval.py<br/>resolve date range"]
+    Command --> Retrieval["retrieval.py<br/>retrieve completed katas"]
+    Command --> Scoring["retrieval.py<br/>load rules, cache ranks, apply scores"]
+    Command --> Formatting["formatting.py<br/>format rows and terminal table"]
+
+    subgraph Inputs["User Sources"]
+        LocalCsv["Local CSV<br/>Flow, name, username"]
+        GoogleSheets["Google Sheets URL"]
+        GoogleDrive["Google Drive file URL"]
+    end
+
+    subgraph GoogleAuth["Google Authentication"]
+        EnvToken["GOOGLE_ACCESS_TOKEN<br/>or configured env var"]
+        Credentials["credentials.json<br/>OAuth client or authorized_user JSON"]
+        TokenCache["credentials.token.json<br/>refresh-token cache"]
+        OAuthBrowser["Loopback browser OAuth flow"]
+    end
+
+    subgraph ExternalApis["External APIs"]
+        SheetsApi["Google Sheets API"]
+        DriveApi["Google Drive API"]
+        OAuthApi["Google OAuth token endpoint"]
+        CodewarsApi["Codewars completed challenges API"]
+        CodewarsChallengeApi["Codewars challenge details API"]
+    end
+
+    subgraph DomainModels["Domain Models"]
+        SheetUser["SheetUser<br/>flow, name, username"]
+        CompletedKata["CompletedKata<br/>kata metadata and completed languages"]
+        KataMetadata["KataMetadata<br/>rank ID and rank name"]
+    end
+
+    subgraph Outputs["Generated Outputs"]
+        DetailsCsv["completed_katas.csv<br/>one row per completed kata"]
+        SummaryCsv["summary.csv<br/>per-user solved counts and total score"]
+        TerminalTable["stdout summary table"]
+        Logs["stderr progress and warnings"]
+    end
+
+    subgraph ScoringFiles["Scoring Files"]
+        ScoringRulesCsv["kata_scoring_rules.csv<br/>official Codewars rank scores"]
+        KataCacheCsv["kata_cache.csv<br/>seen kata rank metadata"]
+    end
+
+    Args --> Auth
+    Args --> Input
+    Args --> Dates
+    Args --> Retrieval
+    Args --> Scoring
+    Args --> Formatting
+
+    Auth --> EnvToken
+    Auth --> Credentials
+    Credentials --> TokenCache
+    Credentials --> OAuthBrowser
+    OAuthBrowser --> OAuthApi
+    TokenCache --> OAuthApi
+    Auth --> Input
+
+    Input --> LocalCsv
+    Input --> GoogleSheets
+    Input --> GoogleDrive
+    GoogleSheets --> SheetsApi
+    GoogleDrive --> DriveApi
+    DriveApi --> SheetsApi
+    Input --> SheetUser
+
+    SheetUser --> Retrieval
+    Dates --> Retrieval
+    Retrieval --> CodewarsApi
+    CodewarsApi --> CompletedKata
+    CompletedKata --> Scoring
+    ScoringRulesCsv --> Scoring
+    KataCacheCsv <--> Scoring
+    Scoring --> CodewarsChallengeApi
+    CodewarsChallengeApi --> KataMetadata
+    KataMetadata --> Scoring
+    Scoring --> CompletedKata
+    CompletedKata --> Formatting
+    SheetUser --> Formatting
+
+    Formatting --> DetailsCsv
+    Formatting --> SummaryCsv
+    Formatting --> TerminalTable
+    Retrieval --> Logs
+    Command --> Logs
+
+    Tests["tests/test_codewars_report.py<br/>unit and async tests"] -.-> Auth
+    Tests -.-> Input
+    Tests -.-> Dates
+    Tests -.-> Retrieval
+    Tests -.-> Scoring
+    Tests -.-> Formatting
+
+    LocalState["Local/generated state<br/>.venv, __pycache__, output CSVs"] -. not runtime code .-> Command

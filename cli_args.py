@@ -71,6 +71,16 @@ def parse_args() -> argparse.Namespace:
         help="Output CSV for per-user solved counts.",
     )
     parser.add_argument(
+        "--scoring-rules-file",
+        default="kata_scoring_rules.csv",
+        help="CSV file mapping Codewars kata rank IDs to awarded score values.",
+    )
+    parser.add_argument(
+        "--kata-cache-file",
+        default="kata_cache.csv",
+        help="CSV cache for Codewars kata rank metadata, used to avoid repeated challenge lookups.",
+    )
+    parser.add_argument(
         "--timeout-seconds",
         type=int,
         default=30,
