@@ -19,12 +19,13 @@ function formatDateTime(value) {
   if (Number.isNaN(date.getTime())) {
     return value;
   }
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(navigator.language, {
     year: "numeric",
     month: "short",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZoneName: "short",
   }).format(date);
 }
 
@@ -42,6 +43,15 @@ function getReportRange(katas) {
 
 function codewarsKataUrl(kata) {
   return `https://www.codewars.com/kata/${encodeURIComponent(kata.kata_slug || kata.kata_id)}`;
+}
+
+function medalForIndex(index) {
+  return ["🥇", "🥈", "🥉"][index] ?? "";
+}
+
+function formatKyu(rankName) {
+  const match = String(rankName || "").match(/^(\d+)\s+kyu$/i);
+  return match ? match[1] : rankName || "n/a";
 }
 
 function App() {
@@ -124,14 +134,14 @@ function App() {
   return (
     <main className="app-shell">
       <header className="app-header">
-        <div>
-          <p className="eyebrow">KATAS RANKING</p>
-          <h1>Weekly Codewars Scoreboard</h1>
+        <div className="ascii-rule" aria-hidden="true">
+          <span></span>
         </div>
-        <div className="range-box">
-          <span>range</span>
-          <strong>{reportRange}</strong>
+        <h1>.:: ꧁⎝ 𓆩༺&nbsp;&nbsp; KATAS RANKING&nbsp;&nbsp; ༻𓆪 ⎠꧂::.</h1>
+        <div className="ascii-rule" aria-hidden="true">
+          <span></span>
         </div>
+        <p className="date-range">Date range: {reportRange}</p>
       </header>
 
       <nav className="tabs" aria-label="Views">
@@ -211,7 +221,10 @@ function RankingView({
                   onClick={() => onSelectUser(row.username)}
                 >
                   <td>{index + 1}</td>
-                  <td>{row.name}</td>
+                  <td>
+                    <span className="medal">{medalForIndex(index)}</span>
+                    {row.name}
+                  </td>
                   <td>{row.username}</td>
                   <td>{row.solved_count}</td>
                   <td>{row.total_score}</td>
@@ -257,7 +270,7 @@ function RankingView({
                       {kata.kata_name}
                     </a>
                   </td>
-                  <td>{kata.kata_rank_name || "n/a"}</td>
+                  <td>{formatKyu(kata.kata_rank_name)}</td>
                   <td>{kata.awarded_score || "0"}</td>
                   <td>{formatDateTime(kata.completed_at)}</td>
                 </tr>
@@ -288,7 +301,6 @@ function ScoringRulesView({ scoringRules }) {
         <table className="console-table rules-table">
           <thead>
             <tr>
-              <th>rank_id</th>
               <th>rank_name</th>
               <th>awarded_score</th>
             </tr>
@@ -296,7 +308,6 @@ function ScoringRulesView({ scoringRules }) {
           <tbody>
             {scoringRules.map((rule) => (
               <tr key={rule.rank_id}>
-                <td>{rule.rank_id}</td>
                 <td>{rule.rank_name}</td>
                 <td>{rule.awarded_score}</td>
               </tr>
