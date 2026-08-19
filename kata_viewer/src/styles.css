@@ -243,7 +243,8 @@ h2 {
   border-left: 1px solid var(--line);
   bottom: 16px;
   box-shadow: -18px 0 0 rgba(0, 0, 0, 0.68);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   opacity: 0;
   padding: 16px;
   pointer-events: none;
@@ -256,6 +257,19 @@ h2 {
     transform 220ms ease;
   width: min(680px, 62%);
   z-index: 2;
+}
+
+.detail-panel::-webkit-scrollbar {
+  width: 10px;
+}
+
+.detail-panel::-webkit-scrollbar-track {
+  background: var(--black);
+}
+
+.detail-panel::-webkit-scrollbar-thumb {
+  background: var(--evowill-ink);
+  border: 1px solid var(--evowill-orange);
 }
 
 .detail-panel.open {
